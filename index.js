@@ -1,6 +1,7 @@
 const express = require("express");
 const admin = require("firebase-admin");
 const bodyParser = require("body-parser");
+const bcrypt = require("bcrypt"); 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -13,26 +14,61 @@ app.use(bodyParser.json());
 
 // 사용자 등록 API
 app.post("/register-user", async (req, res) => {
-  const { userId, password, nickname } = req.body;
+  try {
+    const { userId, password, nickname } = req.body;
+    if (!userId || !password || !nickname) {
+      return res.status(400).send("Missing fields");
+    }
 
-  if (!userId || !password || !nickname) {
-    return res.status(400).send("Missing fields");
+    const userRef = db.collection("users").doc(userId);
+    const doc = await userRef.get();
+    if (doc.exists) {
+      return res.status(409).send("User already exists");
+    }
+
+    // 비밀번호를 bcrypt로 salt+hash
+    const saltRounds     = 12;
+    const passwordHash   = await bcrypt.hash(password, saltRounds);
+
+    await userRef.set({
+      passwordHash,
+      nickname,
+      fcmToken: null
+    });
+
+    res.status(200).send("User registered");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal Server Error");
   }
+});
 
-  const userRef = db.collection("users").doc(userId);
-  const doc = await userRef.get();
+// 사용자 로그인 API
+app.post("/login-user", async (req, res) => {
+  try {
+    const { userId, password } = req.body;
+    if (!userId || !password) {
+      return res.status(400).send("Missing fields");
+    }
 
-  if (doc.exists) {
-    return res.status(409).send("User already exists");
+    const userRef = db.collection("users").doc(userId);
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      return res.status(404).send("User not found");
+    }
+
+    const saved = doc.data();
+    // bcrypt.compare로 hash 검증
+    const match = await bcrypt.compare(password, saved.passwordHash);
+    if (!match) {
+      return res.status(401).send("Incorrect password");
+    }
+
+    res.status(200).send("Login successful");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Internal Server Error");
   }
-
-  await userRef.set({
-    password,
-    nickname,
-    fcmToken: null  // 토큰은 나중에 따로 저장
-  });
-
-  res.status(200).send("User registered");
 });
 
 // 사용자 토큰 등록 API
@@ -55,22 +91,6 @@ app.post("/register-token", async (req, res) => {
   });
 
   res.send("FCM token updated");
-});
-
-// 사용자 로그인 API
-app.post("/login-user", async (req, res) => {
-  const { userId, password } = req.body;
-  if (!userId || !password) return res.status(400).send("Missing fields");
-
-  const userRef = db.collection("users").doc(userId);
-  const doc = await userRef.get();
-
-  if (!doc.exists) return res.status(404).send("User not found");
-
-  const saved = doc.data();
-  if (saved.password !== password) return res.status(401).send("Incorrect password");
-
-  return res.status(200).send("Login successful");
 });
 
 // 푸시 알림 전송 API
