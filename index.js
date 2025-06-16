@@ -96,12 +96,17 @@ app.post("/notify", async (req, res) => {
       return res.status(400).send("Target user has no FCM token");
     }
 
+    // 발신자 닉네임도 Firestore에서 가져오기
+    const fromUserRef = db.collection("users").doc(fromUser);
+    const fromUserDoc = await fromUserRef.get();
+    const senderNickname = fromUserDoc.exists ? fromUserDoc.data().nickname : fromUser;
+
     // 메시지 구성
     const message = {
       token: fcmToken,
       notification: {
         title: "루틴 알림",
-        body: `${fromUser} 님이 '${routineName}' 루틴을 시작했습니다!`
+        body: `${senderNickname} 님이 '${routineName}' 루틴을 시작했습니다!`
       },
       data: {
         fromUser,
