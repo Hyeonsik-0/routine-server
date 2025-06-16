@@ -124,9 +124,7 @@ app.post("/notify", async (req, res) => {
   }
 });
 
-
-
-
-app.listen(() => {
-  console.log(`✅ Server running on https://routine-server-uqzh.onrender.com`);
+app.get("/", (req, res) => {
+  res.send("✅ Routine FCM API 서버가 정상 작동 중입니다.");
 });
+
