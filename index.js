@@ -4,10 +4,8 @@ const bodyParser = require("body-parser");
 const app = express();
 const PORT = 3000;
 
-const serviceAccount = require("./firebase-adminsdk.json");
-
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
+  credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_CONFIG))
 });
 
 const db = admin.firestore();
@@ -129,58 +127,6 @@ app.post("/notify", async (req, res) => {
 
 
 
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
+app.listen(() => {
+  console.log(`✅ Server running on https://routine-server-uqzh.onrender.com`);
 });
-
-
-
-
-
-/* const admin = require("firebase-admin");
-const express = require("express");
-const bodyParser = require("body-parser");
-const app = express();
-const PORT = 3000;
-
-// 서비스 계정 키 로드
-const serviceAccount = require("./firebase-adminsdk.json");
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-app.use(bodyParser.json());
-
-// 테스트용 푸시 전송 API
-app.post("/send", async (req, res) => {
-  const { token, title, body } = req.body;
-
-  const message = {
-    token: token,
-    notification: {
-      title: title,
-      body: body
-    },
-    data: {
-      title: title,
-      body: body,
-      action: "routine_start"
-    }
-  };
-
-  try {
-    const response = await admin.messaging().send(message);
-    console.log("Successfully sent message:", response);
-    res.status(200).send("Push sent!");
-  } catch (error) {
-    console.error("Error sending message:", error);
-    res.status(500).send("Failed to send push");
-  }
-});
-
-app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
-});
-
-*/
