@@ -96,9 +96,9 @@ app.post("/register-token", async (req, res) => {
 // 푸시 알림 전송 API
 app.post("/notify", async (req, res) => {
   console.log("📥 /notify 요청 수신:", req.body);
-  const { fromUser, toUser, routineName } = req.body;
+  const { fromUser, toUser, routineName, isPerformed } = req.body;
 
-  if (!fromUser || !toUser || !routineName) {
+  if (!fromUser || !toUser || !routineName || isPerformed == undefined) {
     return res.status(400).send("Missing fields");
   }
 
@@ -121,16 +121,22 @@ app.post("/notify", async (req, res) => {
     const fromUserDoc = await fromUserRef.get();
     const senderNickname = fromUserDoc.exists ? fromUserDoc.data().nickname : fromUser;
 
+    // isPerformed 에 따라 메시지 본문 변경
+    const bodyText = isPerformed === "true"
+      ? `✅ ${senderNickname} 님이 '${routineName}' 루틴을 시작했습니다!`
+      : `❌ ${senderNickname} 님이 '${routineName}' 루틴을 아직 수행하지 않았습니다!`;
+
     // 메시지 구성
     const message = {
       token: fcmToken,
       notification: {
         title: "루틴 알림",
-        body: `${senderNickname} 님이 '${routineName}' 루틴을 시작했습니다!`
+        body: bodyText
       },
       data: {
         fromUser,
-        routineName
+        routineName,
+        isPerformed: String(isPerformed)  // 디버깅용으로 그대로 전달해도 좋습니다
       }
     };
 
