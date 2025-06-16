@@ -2,7 +2,7 @@ const express = require("express");
 const admin = require("firebase-admin");
 const bodyParser = require("body-parser");
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 admin.initializeApp({
   credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_CONFIG))
@@ -128,3 +128,7 @@ app.get("/", (req, res) => {
   res.send("✅ Routine FCM API 서버가 정상 작동 중입니다.");
 });
 
+
+app.listen(PORT, () => {
+  console.log(`✅ Server running on http://localhost:${PORT}`);
+});
