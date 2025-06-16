@@ -144,6 +144,42 @@ app.post("/notify", async (req, res) => {
   }
 });
 
+// 비밀번호 변경 API
+app.post("/change-password", async (req, res) => {
+  try {
+    const { userId, currentPassword, newPassword } = req.body;
+    if (!userId || !currentPassword || !newPassword) {
+      return res.status(400).send("Missing fields");
+    }
+
+    // 1) 사용자 문서 조회
+    const userRef = db.collection("users").doc(userId);
+    const doc = await userRef.get();
+    if (!doc.exists) {
+      return res.status(404).send("User not found");
+    }
+    const data = doc.data();
+
+    // 2) 현재 비밀번호 검증
+    const match = await bcrypt.compare(currentPassword, data.passwordHash);
+    if (!match) {
+      return res.status(401).send("Incorrect current password");
+    }
+
+    // 3) 새 비밀번호 해시 생성
+    const saltRounds   = 12;
+    const newHash      = await bcrypt.hash(newPassword, saltRounds);
+
+    // 4) Firestore 업데이트
+    await userRef.update({ passwordHash: newHash });
+
+    return res.status(200).send("Password changed successfully");
+  } catch (err) {
+    console.error("Change password error:", err);
+    return res.status(500).send("Internal Server Error");
+  }
+});
+
 app.get("/", (req, res) => {
   res.send("✅ Routine FCM API 서버가 정상 작동 중입니다.");
 });
